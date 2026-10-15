@@ -57,6 +57,42 @@ describe('computeStepCostBreakdown', () => {
     expect(breakdown.tokenCounts.adjustedInputTokens).toBe(0);
   });
 
+  it('prices cache writes reported in the usage details at the cache creation rate', () => {
+    // OpenAI GPT-5.6+ (cache_write_tokens) and @ai-sdk/anthropic v4
+    // (cache_creation_input_tokens) report writes only in the usage details
+    const breakdown = computeStepCostBreakdown(MODEL_COST_CONFIG, {
+      usage: {
+        inputTokens: 100_000,
+        outputTokens: 0,
+        inputTokenDetails: {
+          cacheReadTokens: 10_000,
+          cacheWriteTokens: 90_000,
+        },
+      },
+    });
+
+    expect(breakdown.totalCostInDollars).toBeCloseTo(0.275);
+    expect(breakdown.tokenCounts).toMatchObject({
+      adjustedInputTokens: 0,
+      cachedInputTokens: 10_000,
+      cacheCreationTokens: 90_000,
+    });
+  });
+
+  it('does not count cache writes twice when usage and provider metadata both report them', () => {
+    const breakdown = computeStepCostBreakdown(MODEL_COST_CONFIG, {
+      usage: {
+        inputTokens: 100_000,
+        outputTokens: 0,
+        inputTokenDetails: { cacheWriteTokens: 60_000 },
+      },
+      cacheCreationTokens: 60_000,
+    });
+
+    expect(breakdown.totalCostInDollars).toBeCloseTo(0.22);
+    expect(breakdown.tokenCounts.adjustedInputTokens).toBe(40_000);
+  });
+
   it('costs nothing for a step without usage', () => {
     expect(
       computeStepCostBreakdown(MODEL_COST_CONFIG, {}).totalCostInDollars,

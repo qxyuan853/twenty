@@ -1,13 +1,23 @@
 type ProviderMetadataLike = Record<string, Record<string, unknown> | undefined>;
 
-// Anthropic and Bedrock report cache creation tokens in provider metadata
-// rather than the standard usage object. Anthropic exposes it as a
-// top-level camelCase field; Bedrock nests it under `usage`.
+type CacheCreationStep = {
+  usage?: { inputTokenDetails?: { cacheWriteTokens?: number } };
+  providerMetadata?: ProviderMetadataLike;
+};
+
+// AI SDK v7 reports writes in usage.inputTokenDetails.cacheWriteTokens;
+// Bedrock also nests them in provider metadata, so take the larger per step
 export const extractCacheCreationTokensFromSteps = (
-  steps: Array<{ providerMetadata?: ProviderMetadataLike }>,
+  steps: CacheCreationStep[],
 ): number => {
   return steps.reduce((sum, step) => {
-    return sum + extractCacheCreationTokens(step.providerMetadata);
+    return (
+      sum +
+      Math.max(
+        extractCacheCreationTokens(step.providerMetadata),
+        step.usage?.inputTokenDetails?.cacheWriteTokens ?? 0,
+      )
+    );
   }, 0);
 };
 

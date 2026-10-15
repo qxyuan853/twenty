@@ -63,4 +63,22 @@ describe('addStepToAgentTurnUsage', () => {
       cacheCreationTokens: 200,
     });
   });
+
+  it('counts cache writes reported only in the usage details', () => {
+    const turnUsage = addSteps([
+      {
+        usage: {
+          inputTokens: 1_000,
+          outputTokens: 10,
+          inputTokenDetails: { cacheReadTokens: 400, cacheWriteTokens: 600 },
+        },
+        providerMetadata: { openai: { responseId: 'resp_1' } },
+      },
+    ]);
+
+    expect(turnUsage).toMatchObject({
+      cacheReadTokens: 400,
+      cacheCreationTokens: 600,
+    });
+  });
 });

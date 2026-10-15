@@ -16,10 +16,9 @@ export const addStepToAgentTurnUsage = (
   turnUsage: AgentTurnUsage,
   step: AgentTurnUsageStep,
 ): AgentTurnUsage => {
-  const cacheCreationTokens = extractCacheCreationTokens(step.providerMetadata);
   const breakdown = computeStepCostBreakdown(model, {
     usage: step.usage,
-    cacheCreationTokens,
+    cacheCreationTokens: extractCacheCreationTokens(step.providerMetadata),
   });
 
   return {
@@ -27,7 +26,8 @@ export const addStepToAgentTurnUsage = (
     outputTokens: turnUsage.outputTokens + (step.usage?.outputTokens ?? 0),
     cacheReadTokens:
       turnUsage.cacheReadTokens + breakdown.tokenCounts.cachedInputTokens,
-    cacheCreationTokens: turnUsage.cacheCreationTokens + cacheCreationTokens,
+    cacheCreationTokens:
+      turnUsage.cacheCreationTokens + breakdown.tokenCounts.cacheCreationTokens,
     inputCredits:
       turnUsage.inputCredits +
       convertDollarsToCreditsMicro(breakdown.inputCostInDollars),
